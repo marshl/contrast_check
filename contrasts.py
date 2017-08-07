@@ -3,10 +3,12 @@ import sys
 import curses
 import time
 import argparse
+import os
 
 
 class Color:
-    def __init__(self, r: int, g: int, b: int):
+    def __init__(self, label, r: int, g: int, b: int):
+        self.label = label
         self.r, self.g, self.b = int(r), int(g), int(b)
 
     def float_r(self):
@@ -64,7 +66,7 @@ def stdin_to_list():
 def read_color_file(filename):
     with open(filename, 'r') as csv_file:
         csv_list = csv.reader(csv_file, delimiter="\t")
-        return [x for x in list(csv_list) if len(x) == 3]
+        return [x for x in list(csv_list) if len(x) == 2]
 
 
 if __name__ == "__main__":
@@ -78,42 +80,76 @@ if __name__ == "__main__":
 
     # values = stdin_to_list()
     values = read_color_file(filename)
-    colors = [ColorClass(x[0], Color(*x[1].split(',')), Color(*x[2].split(','))) for x in values]
+    # colors = [ColorClass(x[0], Color(*x[1].split(',')), Color(*x[2].split(','))) for x in values]
+    colors = [Color(x[0], *x[1].split(',')) for x in values]
+    longest_name = max([len(x.label) for x in colors])
 
-    scr = curses.initscr()
-    curses.start_color()
-    scr.keypad(True)
-    scr.refresh()
-    curses.noecho()
+    aa_pass_count = sum(color_contrast(x, y) >= 4.5 for x in colors for y in colors)
+    aaa_pass_count = sum(color_contrast(x, y) >= 7 for x in colors for y in colors)
 
-    pad = curses.newpad(len(colors) + 1, 100)
+    try:
 
-    for y in range(len(colors)):
-        color = colors[y]
-        pad.addstr(y + 1, 0, color.label)
+        scr = curses.initscr()
+        curses.start_color()
+        curses.use_default_colors()
+        scr.keypad(True)
 
-        curses.init_color(curses.COLOR_BLACK, 255, 0, 0)
+        max_x = scr.getmaxyx()[1]
+        max_y = scr.getmaxyx()[0]
 
-        for x in range(len(colors)):
-            contrast_color = colors[x]
-            pad.addstr(y + 1, 15 + 5 * x, 'foo')
+        scr.refresh()
+        curses.noecho()
 
-    pad.refresh(0, 0, 0, 1, 20, 75)
+        cols = len(colors) * 7 + longest_name + 1
+        rows = len(colors) * int(1 + round(cols / max_x, 0)) * 2 + 3
 
-    scr.getch()
-    # curses.nocbreak()
-    # curses.echo()
-    curses.endwin()
+        curses.resizeterm(rows, cols)
 
-    # for color in colors:
-    #     print(color)
-    #
-    # for color1 in colors:
-    #     for color2 in colors:
-    #         print(str(color_contrast(color1.old_color, color2.old_color)))
+        for i in range(len(colors)):
+            color = colors[i]
+            curses.init_color(i,
+                              int(color.r * 1000 / 255),
+                              int(color.g * 1000 / 255),
+                              int(color.b * 1000 / 255))
 
-    # print(Color(255, 255, 255).luminosity())
-    blue = Color(0, 0, 255)
-    white = Color(247, 247, 247)
+        current_y = 1
+        for y in range(len(colors)):
+            color = colors[y]
+            scr.addstr(current_y, 0, color.label)
+            scr.addstr(current_y + 1, 0, f'({color.r},{color.g}, {color.b})')
 
-    # print(color_contrast(blue, white))
+            current_x = longest_name + 1
+
+            for x in range(len(colors)):
+                contrast_color = colors[x]
+                pair_num = y * len(colors) + x + 1
+                curses.init_pair(pair_num, x, y)
+
+                contrast = color_contrast(contrast_color, color)
+
+                if contrast > 7:
+                    text = ' PASS '
+                elif contrast > 4.5:
+                    text = ' pass '
+                else:
+                    text = ' fail '
+
+                if current_x + len(text) >= max_x:
+                    current_x = longest_name
+                    current_y += 1
+                scr.addstr(current_y, current_x, text, curses.color_pair(pair_num))
+
+                current_x += 7
+
+            current_y += 2
+
+        scr.addstr(current_y, 0, f'{aa_pass_count} color combinations pass AA')
+        scr.addstr(current_y + 1, 0, f'{aaa_pass_count} color combinations pass AAA')
+
+        scr.refresh()
+        scr.getch()
+        scr.getch()
+    finally:
+        curses.nocbreak()
+        curses.echo()
+        curses.endwin()
