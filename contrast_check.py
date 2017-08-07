@@ -1,9 +1,10 @@
 import csv
 import sys
 import curses
-import time
 import argparse
-import os
+
+WCAG_AA_RATIO = 4.5
+WCAG_AAA_RATIO = 7.0
 
 
 class Color:
@@ -57,12 +58,6 @@ def color_contrast(color1: Color, color2: Color):
     return (max(lum1, lum2) + 0.05) / (min(lum1, lum2) + 0.05)
 
 
-def stdin_to_list():
-    stdin_content = sys.stdin.read()
-    stdin_csv = csv.reader(stdin_content.split("\n"), delimiter="\t")
-    return [x for x in list(stdin_csv) if len(x) == 3]
-
-
 def read_color_file(filename):
     with open(filename, 'r') as csv_file:
         csv_list = csv.reader(csv_file, delimiter="\t")
@@ -77,15 +72,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     filename = args.filename[0]
-
-    # values = stdin_to_list()
     values = read_color_file(filename)
-    # colors = [ColorClass(x[0], Color(*x[1].split(',')), Color(*x[2].split(','))) for x in values]
+
     colors = [Color(x[0], *x[1].split(',')) for x in values]
     longest_name = max([len(x.label) for x in colors])
-
-    aa_pass_count = sum(color_contrast(x, y) >= 4.5 for x in colors for y in colors)
-    aaa_pass_count = sum(color_contrast(x, y) >= 7 for x in colors for y in colors)
+    aa_pass_count = sum(color_contrast(x, y) >= WCAG_AA_RATIO for x in colors for y in colors)
+    aaa_pass_count = sum(color_contrast(x, y) >= WCAG_AAA_RATIO for x in colors for y in colors)
 
     try:
 
@@ -96,11 +88,12 @@ if __name__ == "__main__":
 
         max_x = scr.getmaxyx()[1]
         max_y = scr.getmaxyx()[0]
+        column_width = 7
 
         scr.refresh()
         curses.noecho()
 
-        cols = len(colors) * 7 + longest_name + 1
+        cols = len(colors) * column_width + longest_name + 1
         rows = len(colors) * int(1 + round(cols / max_x, 0)) * 2 + 3
 
         curses.resizeterm(rows, cols)
@@ -127,9 +120,9 @@ if __name__ == "__main__":
 
                 contrast = color_contrast(contrast_color, color)
 
-                if contrast > 7:
+                if contrast > WCAG_AAA_RATIO:
                     text = ' PASS '
-                elif contrast > 4.5:
+                elif contrast > WCAG_AA_RATIO:
                     text = ' pass '
                 else:
                     text = ' fail '
@@ -139,12 +132,12 @@ if __name__ == "__main__":
                     current_y += 1
                 scr.addstr(current_y, current_x, text, curses.color_pair(pair_num))
 
-                current_x += 7
+                current_x += column_width
 
             current_y += 2
 
-        scr.addstr(current_y, 0, f'{aa_pass_count} color combinations pass AA')
-        scr.addstr(current_y + 1, 0, f'{aaa_pass_count} color combinations pass AAA')
+        scr.addstr(current_y, 0, f'{aa_pass_count} color combinations pass WCAG 2.0 level AA')
+        scr.addstr(current_y + 1, 0, f'{aaa_pass_count} color combinations PASS WCAG 2.0 level AAA')
 
         scr.refresh()
         scr.getch()
