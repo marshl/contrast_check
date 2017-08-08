@@ -1,5 +1,4 @@
 import csv
-import sys
 import curses
 import argparse
 
@@ -41,16 +40,7 @@ class Color:
         return 0.2126 * self.lum_r() + 0.7152 * self.lum_g() + 0.0722 * self.lum_b()
 
     def __str__(self):
-        return f'{self.r},{self.g},{self.b}'
-
-
-class ColorClass:
-    def __init__(self, label, old_color: Color, new_color: Color):
-        self.label = label
-        self.old_color, self.new_color = old_color, new_color
-
-    def __str__(self):
-        return f'{self.label}: {self.old_color} {self.new_color}'
+        return f'({self.r},{self.g},{self.b})'
 
 
 def color_contrast(color1: Color, color2: Color):
@@ -109,7 +99,7 @@ if __name__ == "__main__":
         for y in range(len(colors)):
             color = colors[y]
             scr.addstr(current_y, 0, color.label)
-            scr.addstr(current_y + 1, 0, f'({color.r},{color.g}, {color.b})')
+            scr.addstr(current_y + 1, 0, str(color))
 
             current_x = longest_name + 1
 
@@ -120,9 +110,9 @@ if __name__ == "__main__":
 
                 contrast = color_contrast(contrast_color, color)
 
-                if contrast > WCAG_AAA_RATIO:
+                if contrast >= WCAG_AAA_RATIO:
                     text = ' PASS '
-                elif contrast > WCAG_AA_RATIO:
+                elif contrast >= WCAG_AA_RATIO:
                     text = ' pass '
                 else:
                     text = ' fail '
@@ -130,6 +120,7 @@ if __name__ == "__main__":
                 if current_x + len(text) >= max_x:
                     current_x = longest_name
                     current_y += 1
+
                 scr.addstr(current_y, current_x, text, curses.color_pair(pair_num))
 
                 current_x += column_width
