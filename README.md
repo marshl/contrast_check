@@ -1,5 +1,4 @@
 # contrast_check
-----------------
 A script that takes a list of colors and displays all the possible combinations of those colors as foregrounds and brackgrounds, and then rates those combinatiosn depending on whether they pass WCAG 2.0 level AA or AAA.
 
 # Usage:
