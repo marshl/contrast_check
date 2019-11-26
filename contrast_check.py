@@ -40,7 +40,7 @@ class Color:
         return 0.2126 * self.lum_r() + 0.7152 * self.lum_g() + 0.0722 * self.lum_b()
 
     def __str__(self):
-        return f'({self.r},{self.g},{self.b})'
+        return f"({self.r},{self.g},{self.b})"
 
 
 def color_contrast(color1: Color, color2: Color):
@@ -49,25 +49,30 @@ def color_contrast(color1: Color, color2: Color):
 
 
 def read_color_file(filename):
-    with open(filename, 'r') as csv_file:
+    with open(filename, "r") as csv_file:
         csv_list = csv.reader(csv_file, delimiter="\t")
         return [x for x in list(csv_list) if len(x) == 2]
 
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='Find the color contrast of colors in the given file')
-    parser.add_argument('filename', metavar='filename', nargs=1,
-                        help='The input file')
+    parser = argparse.ArgumentParser(
+        description="Find the color contrast of colors in the given file"
+    )
+    parser.add_argument("filename", metavar="filename", nargs=1, help="The input file")
 
     args = parser.parse_args()
     filename = args.filename[0]
     values = read_color_file(filename)
 
-    colors = [Color(x[0], *x[1].split(',')) for x in values]
+    colors = [Color(x[0], *x[1].split(",")) for x in values]
     longest_name = max([len(x.label) for x in colors])
-    aa_pass_count = sum(color_contrast(x, y) >= WCAG_AA_RATIO for x in colors for y in colors)
-    aaa_pass_count = sum(color_contrast(x, y) >= WCAG_AAA_RATIO for x in colors for y in colors)
+    aa_pass_count = sum(
+        color_contrast(x, y) >= WCAG_AA_RATIO for x in colors for y in colors
+    )
+    aaa_pass_count = sum(
+        color_contrast(x, y) >= WCAG_AAA_RATIO for x in colors for y in colors
+    )
 
     try:
 
@@ -90,10 +95,12 @@ if __name__ == "__main__":
 
         for i in range(len(colors)):
             color = colors[i]
-            curses.init_color(i,
-                              int(color.r * 1000 / 255),
-                              int(color.g * 1000 / 255),
-                              int(color.b * 1000 / 255))
+            curses.init_color(
+                i,
+                int(color.r * 1000 / 255),
+                int(color.g * 1000 / 255),
+                int(color.b * 1000 / 255),
+            )
 
         current_y = 1
         for y in range(len(colors)):
@@ -111,11 +118,11 @@ if __name__ == "__main__":
                 contrast = color_contrast(contrast_color, color)
 
                 if contrast >= WCAG_AAA_RATIO:
-                    text = ' PASS '
+                    text = " PASS "
                 elif contrast >= WCAG_AA_RATIO:
-                    text = ' pass '
+                    text = " pass "
                 else:
-                    text = ' fail '
+                    text = " fail "
 
                 if current_x + len(text) >= max_x:
                     current_x = longest_name
@@ -127,8 +134,14 @@ if __name__ == "__main__":
 
             current_y += 2
 
-        scr.addstr(current_y, 0, f'{aa_pass_count} color combinations pass WCAG 2.0 level AA')
-        scr.addstr(current_y + 1, 0, f'{aaa_pass_count} color combinations PASS WCAG 2.0 level AAA')
+        scr.addstr(
+            current_y, 0, f"{aa_pass_count} color combinations pass WCAG 2.0 level AA"
+        )
+        scr.addstr(
+            current_y + 1,
+            0,
+            f"{aaa_pass_count} color combinations PASS WCAG 2.0 level AAA",
+        )
 
         scr.refresh()
         scr.getch()
